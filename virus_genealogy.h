@@ -10,17 +10,19 @@ class VirusGenealogy
 private:
     typedef Virus::id_type ID;
     typedef std::vector<Virus::id_type> IDVector;
+
     ID _stem_id;
 
-    std::map<ID, IDVector> descendants;
-    std::map<ID, IDVector> ascendants;
+    std::map<ID, IDVector> descendants; // TODO: zamienić na smart pointery
+    std::map<ID, IDVector> ascendants; // TODO: zamienić na smart pointery
     std::map<ID, Virus> viruses;
 
 public:
     VirusGenealogy(const ID& stem_id)
     {
         _stem_id = stem_id;
-
+        viruses.emplace(stem_id, stem_id);
+        //TODO
     }
 
     ID get_stem_id() const
