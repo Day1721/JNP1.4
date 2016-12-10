@@ -4,62 +4,91 @@
 #include <vector>
 #include <map>
 
-template <class TVirus>
+template <class Virus>
 class VirusGenealogy
 {
 private:
-    TVirus::id_type _stem_id;
+    typedef Virus::id_type ID;
+    typedef std::vector<Virus::id_type> IDVector;
+    ID _stem_id;
 
-    std::map<TVirus::id_type, std::vector<TVirus::id_type>> descendants;
-    std::map<TVirus::id_type, std::vector<TVirus::id_type>> ascendants;
-    std::map<TVirus::id_type, TVirus> viruses;
+    std::map<ID, IDVector> descendants;
+    std::map<ID, IDVector> ascendants;
+    std::map<ID, Virus> viruses;
 
 public:
-    VirusGenealogy(const TVirus::id_type& stem_id)
+    VirusGenealogy(const ID& stem_id)
     {
         _stem_id = stem_id;
-        //TODO
+
     }
 
-    TVirus::id_type get_stem_id() const
+    ID get_stem_id() const
     {
         return _stem_id;
         //TODO
     }
 
-    std::vector<TVirus::id_type> get_children(const TVirus::id_type& id) const
+    IDVector get_children(const ID& id) const
     {
-        return descendants[id];
+        try {
+            return descendants.at(id);
+        }
+        catch (const std::out_of_range& oor) {
+            throw VirusNotFound(); 
+        }
+    }
+
+    IDVector get_parents(const ID& id) const
+    {
+        try {
+            return ascendants.at(id);
+        }
+        catch (const std::out_of_range& oor) {
+            throw VirusNotFound(); 
+        }
+    }
+
+    Virus& operator[](const ID& id) const
+    {
+        try {
+            return viruses.at(id);
+        }
+        catch (const std::out_of_range& oor) {
+            throw VirusNotFound(); 
+        }
+    }
+
+    void create(const ID& id, const ID& parent_id)
+    {
         //TODO
     }
 
-    std::vector<TVirus::id_type> get_parents(const TVirus::id_type& id) const
-    {
-        return ascendants[id];
-        //TODO
-    }
-
-    TVirus& operator[](const TVirus::id_type& id) const
-    {
-        return viruses[id];
-    }
-
-    void create(const TVirus::id_type& id, const TVirus::id_type& parent_id)
+    void create(const ID& id, const IDVector& parent_ids)
     {
         //TODO
     }
 
-    void create(const TVirus::id_type& id, const std::vector<TVirus::id_type>& parent_ids)
+    void connect(const ID& child_id, const ID& parent_id)
     {
-        //TODO
+        try {
+            IDVector& parent_desc = descendants.at(parent_id);
+            IDVector& child_asc = ascendants.at(child_id);
+            parent_desc.push_back(child_id);
+            try {
+                child_asc.push_back(parent_id);
+            }
+            catch (...) {
+                parent_desc.pop_back();
+                throw;
+            }
+        }
+        catch (const std::out_of_range& oor) {
+            throw VirusNotFound();
+        }
     }
 
-    void connect(const TVirus::id_type& child_id, const TVirus::id_type& parent_id)
-    {
-        //TODO
-    }
-
-    void remove(const TVirus::id_type& id)
+    void remove(const ID& id)
     {
         //TODO
     }
