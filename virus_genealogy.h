@@ -4,21 +4,26 @@
 #include <vector>
 #include <map>
 #include <memory>
-#include <set>
+
+class VirusNotFound : std::exception { };
+
+class VirusAlreadyCreated : std::exception { };
+
+class TriedToRemoveStemVirus : std::exception { };
 
 template <class Virus>
 class VirusGenealogy
 {
 private:
     typedef typename Virus::id_type ID;
-
+/*
     struct ptr_comparator {
         bool operator() (const std::shared_ptr<ID>& l, const std::shared_ptr<ID>& r) {
             return *l < *r;
         }
     };
-
-    typedef std::set<std::shared_ptr<ID>, ptr_comparator> IDSet;
+*/
+    typedef std::vector<std::shared_ptr<ID>/*, ptr_comparator*/> IDSet;
 
     struct Node {
         const std::shared_ptr<ID> id_ptr;
@@ -83,7 +88,12 @@ public:
 
     Virus& operator[](const ID& id) const
     {
-        //TODO
+        try {
+            return nodes.at(id)->virus;
+        }
+        catch (std::out_of_range e) {
+            throw VirusNotFound();
+        }
     }
 
     void create(const ID& id, const ID& parent_id)
@@ -102,6 +112,11 @@ public:
     }
 
     void remove(const ID& id)
+    {
+        //TODO
+    }
+
+    bool exists(const ID& id)
     {
         //TODO
     }
