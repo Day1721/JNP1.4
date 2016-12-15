@@ -167,30 +167,31 @@ public:
         for(ascendants_iterator = node->ascendants.begin(); ascendants_iterator < node->ascendants.end(); ascendants_iterator++) {
 
 
-        }*/
+        }
 
         for (ascendants_iterator = node->ascendants.begin(); ascendants_iterator < node->ascendants.end(); ascendants_iterator++) {
-            (*ascendants_iterator)->descendants.erase((*ascendants_iterator)->descendants.find(nodes[id]));
+            (*ascendants_iterator)->descendants.erase(find((*ascendants_iterator)->descendants, nodes[id]));
         }
-        flag = true;
         for (descendants_iterator = node->descendants.begin(); descendants_iterator < node->descendants.end(); descendants_iterator++) {
-            (*descendants_iterator)->ascendants.erase((*descendants_iterator)->ascendants.find(nodes[id]));
-        }
+            (*descendants_iterator)->ascendants.erase(find((*ascendants_iterator)->ascendants, nodes[id]));
+        }*/
+
+        auto node_ptr = nodes[id];
 
         try {
             for (ascendants_iterator = node->ascendants.begin(); ascendants_iterator < node->ascendants.end(); ascendants_iterator++) {
-                (*ascendants_iterator)->descendants.erase((*ascendants_iterator)->descendants.find(nodes[id]));
+                (*ascendants_iterator)->descendants.erase(find((*ascendants_iterator)->descendants, node_ptr));
             }
             flag = true;
             for (descendants_iterator = node->descendants.begin(); descendants_iterator < node->descendants.end(); descendants_iterator++) {
-                (*descendants_iterator)->ascendants.erase((*descendants_iterator)->ascendants.find(nodes[id]));
+                (*descendants_iterator)->ascendants.erase(find((*ascendants_iterator)->ascendants, node_ptr));
             }
             //TODO recursive remove of descendants
             nodes.erase(id);
         }
         catch (...) {
             if(flag) {
-                //TODO
+
             }
             //TODO
         }
