@@ -153,7 +153,7 @@ public:
         auto it = child->ascendants.begin();
         while (it != child->ascendants.end() && it->lock() != parent)
             it++;
-        if(it != child->ascendants.end()) {
+        if(it == child->ascendants.end()) {
             child->ascendants.push_back(std::weak_ptr<Node>(parent));
             try {
                 parent->descendants.push_back(std::weak_ptr<Node>(child));
