@@ -97,8 +97,8 @@ public:
 
         auto node = std::make_shared<Node>(id);
         auto parent = nodes[parent_id];
-        node->ascendants.push_back(std::weak_ptr<Node>(node));
-        parent->descendants.push_back(std::weak_ptr<Node>(parent));
+        node->ascendants.push_back(std::weak_ptr<Node>(parent));
+        parent->descendants.push_back(std::weak_ptr<Node>(node));
 
         try {
             nodes.insert(std::make_pair(id, std::move(node)));
