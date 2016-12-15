@@ -34,7 +34,7 @@ private:
         Virus virus;
         NodeVector descendants;
         NodeVector ascendants;
-        int asc_counter;
+        size_t asc_counter;
 
         Node(const ID& id)
                 : virus(id), descendants(), ascendants() { }
