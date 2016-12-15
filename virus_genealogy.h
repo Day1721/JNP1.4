@@ -111,6 +111,7 @@ public:
         auto node = std::make_shared<Node>(id);
         auto parent = nodes[parent_id];
         node->ascendants.push_back(std::shared_ptr<Node>(parent));
+        node->asc_counter = 1;
         parent->descendants.push_back(std::shared_ptr<Node>(node));
 
         // Rollback w razie wyjatku
@@ -130,6 +131,7 @@ public:
             if (nodes.count(parent_id) == 0) throw VirusNotFound();
 
         auto node = std::make_shared<Node>(id);
+        node->asc_counter = parent_ids.size();
         for (auto& parent_id : parent_ids)
             node->ascendants.push_back(std::shared_ptr<Node>(nodes[parent_id]));
 
@@ -187,6 +189,7 @@ public:
             child->ascendants.push_back(std::shared_ptr<Node>(parent));
             try {
                 parent->descendants.push_back(std::shared_ptr<Node>(child));
+                child->asc_counter++;
             }
             catch (...) {
                 child->ascendants.pop_back();
