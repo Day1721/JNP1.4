@@ -6,18 +6,19 @@
 #include <memory>
 #include <algorithm>
 #include <deque>
+#include <exception>
 
-class VirusNotFound : std::exception {
+class VirusNotFound : public std::exception {
     public:
         virtual const char* what() const noexcept { return "VirusNotFound"; }
 };
 
-class VirusAlreadyCreated : std::exception {
+class VirusAlreadyCreated : public std::exception {
     public:
         virtual const char* what() const noexcept { return "VirusAlreadyCreated"; }
 };
 
-class TriedToRemoveStemVirus : std::exception {
+class TriedToRemoveStemVirus : public std::exception {
     public:
         virtual const char* what() const noexcept { return "TriedToRemoveStemVirus"; }
 };

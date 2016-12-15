@@ -35,16 +35,19 @@ int main() {
     assert(gen.get_parents("D").size() == parents.size());
     assert(gen.get_children("A").size() == 2);
     assert("D" == gen["D"].get_id());
+    std::cout << "Przed remove1\n";
     gen.remove("A");
     assert(!gen.exists("A"));
     assert(gen.exists("B"));
     assert(gen.exists("C"));
     assert(gen.exists("D"));
+    std::cout << "Przed remove1\n";
     gen.remove("B");
     assert(!gen.exists("A"));
     assert(!gen.exists("B"));
     assert(!gen.exists("C"));
     assert(!gen.exists("D"));
+    std::cout << "Przed remove1\n";
     try {
         gen["E"];
     }
