@@ -54,7 +54,7 @@ public:
             Node& current = *nodes.at(id);
             std::vector<ID> children;
             for (auto& x : current.descendants) {
-                children.push_back(x->virus.get_id());
+                children.push_back(x.lock()->virus.get_id());
             }
             return children;
         }
@@ -70,7 +70,7 @@ public:
             Node& current = *nodes.at(id);
             std::vector<ID> parents;
             for (auto& x : current.ascendants) {
-                parents.push_back(x->virus.get_id());
+                parents.push_back(x.lock()->virus.get_id());
             }
             return parents;
         }
