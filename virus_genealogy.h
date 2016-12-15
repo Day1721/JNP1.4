@@ -102,13 +102,20 @@ public:
         if(nodes.count(parent_id) == 0) throw VirusNotFound();
 
         auto node = std::make_unique<Node>(id);
-        node->ascendants.push_back(parent_id);
-        nodes.insert(std::make_pair(id, node));
+        node->ascendants.push_back(std::make_unique<ID>(parent_id));
+        nodes.insert(std::make_pair(id, std::move(node)));
     }
 
     void create(const ID& id, const std::vector<ID>& parent_ids)
     {
-        //TODO
+        if(nodes.count(id) > 0) throw VirusAlreadyCreated();
+        for(auto parent_id : parent_ids)
+            if(nodes.count(parent_id) == 0) throw VirusNotFound();
+
+        auto node = std::make_unique<Node>(id);
+        for(auto parent_id : parent_ids)
+            node->ascendants.push_back(std::make_unique<ID>(parent_id));
+        nodes.insert(std::make_pair(id, std::move(node)));
     }
 
     void connect(const ID& child_id, const ID& parent_id)
