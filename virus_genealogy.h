@@ -34,6 +34,9 @@ private:
     ID _stem_id;
 
 public:
+    VirusGenealogy(const VirusGenealogy&) = delete;
+    VirusGenealogy& operator=(const VirusGenealogy&) = delete;
+
     VirusGenealogy(const ID& stem_id) {
         _stem_id = stem_id;
         nodes.insert(std::make_pair(stem_id, std::make_shared<Node>(stem_id)));
@@ -139,6 +142,13 @@ public:
             //throw
         }
 
+        /* Jak widac, uzycie std::vector do przechowywania sasiadow w grafie
+         * skutkuje liniowym czasem sprawdzania, czy krawedz istnieje.
+         * Niestety, nie jest latwo tego uniknac. Oto dlaczego: std::set::erase nie ma
+         * gwarancji no-throw w ogolnym przypadku. A zatem aby zaimplementowac poprawnie rollback,
+         * trzeba by robic kopie kontenera. To zas rowniez prowadzi do liniowej zlozonosci.
+         * Zdecydowalismy sie zatem pozostac przy prostszym rozwiazaniu.
+         */
         auto it = child->ascendants.begin();
         while (it != child->ascendants.end() && it->lock() != parent)
             it++;
