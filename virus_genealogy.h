@@ -156,15 +156,16 @@ public:
     }
 
     void remove(const ID& id) {
-        using iterators = std::vector<std::vector<std::weak_ptr<Node>>::const_iterator>;
+        //using iterators = std::vector<NodeVector::iterator>;
         if(id == _stem_id) throw TriedToRemoveStemVirus();
         if(nodes.count(id) == 0) throw VirusNotFound();
         std::shared_ptr<Node> node = nodes[id];
 
-        NodeVector::iterator ascendants_iterator, descendants_iterator;
+        typename NodeVector::iterator ascendants_iterator, descendants_iterator;
         bool flag = false;
 
-        std::vector<NodeVector::const_iterator> descendants, ascendants;/*
+        //std::vector<NodeVector::const_iterator> descendants, ascendants;
+        /*
         for(ascendants_iterator = node->ascendants.begin(); ascendants_iterator < node->ascendants.end(); ascendants_iterator++) {
 
 
@@ -179,11 +180,11 @@ public:
 
         try {
             for (ascendants_iterator = node->ascendants.begin(); ascendants_iterator < node->ascendants.end(); ascendants_iterator++) {
-                (*ascendants_iterator)->descendants.erase(find((*ascendants_iterator)->descendants, node));
+                (*ascendants_iterator).lock()->descendants.erase(find((*ascendants_iterator).lock()->descendants, node));
             }
             flag = true;
             for (descendants_iterator = node->descendants.begin(); descendants_iterator < node->descendants.end(); descendants_iterator++) {
-                (*descendants_iterator)->ascendants.erase(find((*ascendants_iterator)->ascendants, node));
+                (*descendants_iterator).lock()->ascendants.erase(find((*ascendants_iterator).lock()->ascendants, node));
             }
             nodes.erase(id);
         }
@@ -191,13 +192,13 @@ public:
             if(flag) {
                 descendants_iterator--;
                 while (descendants_iterator >= node->descendants.begin()) {
-                    (*descendants_iterator)->ascendants.push_back(node);
+                    (*descendants_iterator).lock()->ascendants.push_back(node);
                     descendants_iterator--;
                 }
             }
             ascendants_iterator--;
             while (ascendants_iterator >= node->ascendants.begin()) {
-                (*ascendants_iterator)->descendants.push_back(node);
+                (*ascendants_iterator).lock()->descendants.push_back(node);
                 ascendants_iterator--;
             }
         }
@@ -210,7 +211,7 @@ public:
 private:
     typename NodeVector::const_iterator find(const typename std::vector<std::weak_ptr<Node>> vector, std::weak_ptr<Node> ptr) {
         for(auto iterator = vector.begin(); iterator < vector.end(); iterator++) {
-            if(ptr->id == iterator->virus.get_id())
+            if(ptr.lock()->virus.get_id() == iterator->lock()->virus.get_id())
                 return iterator;
         }
         return vector.end();
