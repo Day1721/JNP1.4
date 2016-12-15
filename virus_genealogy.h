@@ -195,7 +195,45 @@ public:
     }
 
     void remove(const ID& id) {
-        //TODO
+        using iterators = std::vector<std::vector<std::weak_ptr<Node>>::iterator>;
+        if(id == _stem_id) throw TriedToRemoveStemVirus();
+        if(nodes.count(id) == 0) throw VirusNotFound();
+        std::shared_ptr<Node> node = nodes[id];
+
+        NodeVector::iterator ascendants_iterator, descendants_iterator;
+        bool flag = false;
+
+        std::vector<NodeVector::const_iterator> descendants, ascendants;/*
+        for(ascendants_iterator = node->ascendants.begin(); ascendants_iterator < node->ascendants.end(); ascendants_iterator++) {
+
+
+        }*/
+
+        for (ascendants_iterator = node->ascendants.begin(); ascendants_iterator < node->ascendants.end(); ascendants_iterator++) {
+            (*ascendants_iterator)->descendants.erase((*ascendants_iterator)->descendants.find(nodes[id]));
+        }
+        flag = true;
+        for (descendants_iterator = node->descendants.begin(); descendants_iterator < node->descendants.end(); descendants_iterator++) {
+            (*descendants_iterator)->ascendants.erase((*descendants_iterator)->ascendants.find(nodes[id]));
+        }
+
+        try {
+            for (ascendants_iterator = node->ascendants.begin(); ascendants_iterator < node->ascendants.end(); ascendants_iterator++) {
+                (*ascendants_iterator)->descendants.erase((*ascendants_iterator)->descendants.find(nodes[id]));
+            }
+            flag = true;
+            for (descendants_iterator = node->descendants.begin(); descendants_iterator < node->descendants.end(); descendants_iterator++) {
+                (*descendants_iterator)->ascendants.erase((*descendants_iterator)->ascendants.find(nodes[id]));
+            }
+            //TODO recursive remove of descendants
+            nodes.erase(id);
+        }
+        catch (...) {
+            if(flag) {
+                //TODO
+            }
+            //TODO
+        }
     }
 
     void propagate_removal(Node* n) {
@@ -208,6 +246,15 @@ public:
     // Mapa zawsze moze rzucic
     bool exists(const ID& id) {
         return nodes.count(id) > 0;
+    }
+
+private:
+    NodeVector::const_iterator find(const typename std::vector<std::weak_ptr<Node>> vector, std::weak_ptr<Node> ptr) {
+        for(auto iterator = vector.begin(); iterator < vector.end(); iterator++) {
+            if(ptr->id == iterator->virus.get_id())
+                return iterator;
+        }
+        return vector.end();
     }
 };
 
