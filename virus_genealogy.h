@@ -12,9 +12,8 @@ class VirusAlreadyCreated : std::exception { };
 
 class TriedToRemoveStemVirus : std::exception { };
 
-template <class Virus>
-class VirusGenealogy
-{
+template<class Virus>
+class VirusGenealogy {
 private:
     typedef typename Virus::id_type ID;
 
@@ -25,11 +24,9 @@ private:
         Virus virus;
         NodeVector descendants;
         NodeVector ascendants;
+
         Node(const ID& id)
-            : virus(id)
-            , descendants()
-            , ascendants()
-        {}
+                : virus(id), descendants(), ascendants() { }
     };
 
     std::map<ID, std::shared_ptr<Node>> nodes;
@@ -37,19 +34,16 @@ private:
     ID _stem_id;
 
 public:
-    VirusGenealogy(const ID& stem_id)
-    {
+    VirusGenealogy(const ID& stem_id) {
         _stem_id = stem_id;
         nodes.insert(std::make_pair(stem_id, std::make_shared<Node>(stem_id)));
     }
 
-    ID get_stem_id() const
-    {
+    ID get_stem_id() const {
         return _stem_id;
     }
 
-    std::vector<ID> get_children(const ID& id) const
-    {
+    std::vector<ID> get_children(const ID& id) const {
         try {
             Node& current = *nodes.at(id);
             std::vector<ID> children;
@@ -64,8 +58,7 @@ public:
         return std::vector<ID>(); // żeby się kompilator odczepił
     }
 
-    std::vector<ID> get_parents(const ID& id) const
-    {
+    std::vector<ID> get_parents(const ID& id) const {
         try {
             Node& current = *nodes.at(id);
             std::vector<ID> parents;
@@ -80,8 +73,7 @@ public:
         return std::vector<ID>(); // żeby się kompilator odczepił
     }
 
-    Virus& operator[](const ID& id) const
-    {
+    Virus& operator [](const ID& id) const {
         try {
             return nodes.at(id)->virus;
         }
@@ -90,10 +82,9 @@ public:
         }
     }
 
-    void create(const ID& id, const ID& parent_id)
-    {
-        if(nodes.count(id) > 0) throw VirusAlreadyCreated();
-        if(nodes.count(parent_id) == 0) throw VirusNotFound();
+    void create(const ID& id, const ID& parent_id) {
+        if (nodes.count(id) > 0) throw VirusAlreadyCreated();
+        if (nodes.count(parent_id) == 0) throw VirusNotFound();
 
         auto node = std::make_shared<Node>(id);
         auto parent = nodes[parent_id];
@@ -108,24 +99,23 @@ public:
         }
     }
 
-    void create(const ID& id, const std::vector<ID>& parent_ids)
-    {
-        if(nodes.count(id) > 0) throw VirusAlreadyCreated();
-        for(auto& parent_id : parent_ids)
-            if(nodes.count(parent_id) == 0) throw VirusNotFound();
+    void create(const ID& id, const std::vector<ID>& parent_ids) {
+        if (nodes.count(id) > 0) throw VirusAlreadyCreated();
+        for (auto& parent_id : parent_ids)
+            if (nodes.count(parent_id) == 0) throw VirusNotFound();
 
         auto node = std::make_shared<Node>(id);
-        for(auto& parent_id : parent_ids)
+        for (auto& parent_id : parent_ids)
             node->ascendants.push_back(std::weak_ptr<Node>(nodes[parent_id]));
 
         std::vector<std::shared_ptr<Node>> parents;
         typename std::vector<std::shared_ptr<Node>>::iterator it;
 
-        for(auto& parent_id : parent_ids) {
+        for (auto& parent_id : parent_ids) {
             parents.push_back(nodes[parent_id]);
         }
         try {
-            for(it = parents.begin(); it < parents.end(); it++) {
+            for (it = parents.begin(); it < parents.end(); it++) {
                 (*it)->descendants.push_back(std::weak_ptr<Node>(node));
             }
             nodes.insert(std::make_pair(id, std::move(node)));
@@ -139,8 +129,7 @@ public:
         }
     }
 
-    void connect(const ID& child_id, const ID& parent_id)
-    {
+    void connect(const ID& child_id, const ID& parent_id) {
         std::shared_ptr<Node> child, parent;
         try {
             child = nodes.at(child_id);
@@ -153,7 +142,7 @@ public:
         auto it = child->ascendants.begin();
         while (it != child->ascendants.end() && it->lock() != parent)
             it++;
-        if(it == child->ascendants.end()) {
+        if (it == child->ascendants.end()) {
             child->ascendants.push_back(std::weak_ptr<Node>(parent));
             try {
                 parent->descendants.push_back(std::weak_ptr<Node>(child));
@@ -165,13 +154,11 @@ public:
         }
     }
 
-    void remove(const ID& id)
-    {
+    void remove(const ID& id) {
         //TODO
     }
 
-    bool exists(const ID& id)
-    {
+    bool exists(const ID& id) {
         return nodes.count(id) > 0;
     }
 };
