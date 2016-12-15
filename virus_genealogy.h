@@ -161,8 +161,7 @@ public:
         if(nodes.count(id) == 0) throw VirusNotFound();
         std::shared_ptr<Node> node = nodes[id];
 
-        typename NodeVector::iterator ascendants_iterator, descendants_iterator;
-        bool flag = false;
+        typename NodeVector::iterator ascendants_iterator, descendants_iterator = nullptr;
 
         //std::vector<NodeVector::const_iterator> descendants, ascendants;
         /*
@@ -182,14 +181,13 @@ public:
             for (ascendants_iterator = node->ascendants.begin(); ascendants_iterator < node->ascendants.end(); ascendants_iterator++) {
                 (*ascendants_iterator).lock()->descendants.erase(find((*ascendants_iterator).lock()->descendants, node));
             }
-            flag = true;
             for (descendants_iterator = node->descendants.begin(); descendants_iterator < node->descendants.end(); descendants_iterator++) {
                 (*descendants_iterator).lock()->ascendants.erase(find((*ascendants_iterator).lock()->ascendants, node));
             }
             nodes.erase(id);
         }
         catch (...) {
-            if(flag) {
+            if(descendants_iterator != nullptr) {
                 descendants_iterator--;
                 while (descendants_iterator >= node->descendants.begin()) {
                     (*descendants_iterator).lock()->ascendants.push_back(node);
