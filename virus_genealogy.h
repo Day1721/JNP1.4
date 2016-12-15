@@ -4,6 +4,7 @@
 #include <vector>
 #include <map>
 #include <memory>
+#include <algorithm>
 
 class VirusNotFound : std::exception { };
 
@@ -23,7 +24,7 @@ private:
         }
     };
 */
-    typedef std::vector<std::shared_ptr<ID>/*, ptr_comparator*/> IDSet;
+    typedef std::vector<std::weak_ptr<ID>/*, ptr_comparator*/> IDSet;
 
     struct Node {
         const std::shared_ptr<ID> id_ptr;
@@ -60,7 +61,7 @@ public:
             Node& current = *nodes.at(id);
             std::vector<ID> children;
             for (auto& x : current.descendants) {
-                children.push_back(*x);
+                children.push_back(*(x.lock()));
             }
             return children;
         }
@@ -76,7 +77,7 @@ public:
             Node& current = *nodes.at(id);
             std::vector<ID> parents;
             for (auto& x : current.ascendants) {
-                parents.push_back(*x);
+                parents.push_back(*(x.lock()));
             }
             return parents;
         }
@@ -113,7 +114,24 @@ public:
 
     void connect(const ID& child_id, const ID& parent_id)
     {
-        // TODO
+        try {
+            Node& child = *nodes.at(child_id);
+            Node& parent = *nodes.at(parent_id);
+            std::weak_ptr<ID> parent_id_ptr = parent.id_ptr;
+            if(std::find(child.ascendants.begin(), child.ascendants.end(), parent_id_ptr) != child.ascendants.end()) {
+                child.ascendants.push_back(parent_id_ptr);
+                try {
+                    parent.descendants.push_back(std::weak_ptr<ID>(child.id_ptr));
+                }
+                catch (...) {
+                    child.ascendants.pop_back();
+                    throw;
+                }
+            }
+        }
+        catch (const std::out_of_range& oor) {
+            //throw
+        }
     }
 
     void remove(const ID& id)
