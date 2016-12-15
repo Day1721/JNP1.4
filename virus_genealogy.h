@@ -23,13 +23,7 @@ private:
             return *l < *r;
         }
     };
-
-    template <typename Enumerable, typename Function>
-    Enumerable select(Enumerable enumerable, Function handler) {
-        std::transform(enumerable.begin(), enumerable.end(), enumerable.begin(), handler);
-        return enumerable;
-    }*/
-
+*/
     typedef std::vector<std::weak_ptr<ID>/*, ptr_comparator*/> IDSet;
 
     struct Node {
@@ -109,7 +103,9 @@ public:
         if(nodes.count(parent_id) == 0) throw VirusNotFound();
 
         auto node = std::make_unique<Node>(id);
-        node->ascendants.push_back(std::weak_ptr<ID>(nodes[parent_id]->id_ptr));
+        std::weak_ptr<ID> ptr(nodes[parent_id]->id_ptr);
+        node->ascendants.push_back(ptr);
+        nodes[parent_id]->descendants.push_back(std::weak_ptr<ID>(ptr));
         nodes.insert(std::make_pair(id, std::move(node)));
     }
 
@@ -122,6 +118,24 @@ public:
         auto node = std::make_unique<Node>(id);
         for(auto& parent_id : parent_ids)
             node->ascendants.push_back(std::weak_ptr<ID>(nodes[parent_id]->id_ptr));
+
+        typename std::vector<std::unique_ptr<Node>>::iterator it;
+        std::vector<std::unique_ptr<Node>> parents;
+        for(auto parent_id : parent_ids) {
+            parents.push_back(nodes[parent_id]);
+        }
+        try {
+            for(it = parents.begin(); it < parents.end(); it++) {
+                (*it)->descendants.push_back(std::weak_ptr<ID>(id));
+            }
+        }
+        catch (...) {
+            it--;
+            while (it >= parents.begin()) {
+                (*it)->descendants.pop_back();
+            }
+            throw;
+        }
         nodes.insert(std::make_pair(id, std::move(node)));
     }
 
