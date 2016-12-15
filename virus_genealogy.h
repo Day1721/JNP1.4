@@ -23,7 +23,13 @@ private:
             return *l < *r;
         }
     };
-*/
+
+    template <typename Enumerable, typename Function>
+    Enumerable select(Enumerable enumerable, Function handler) {
+        std::transform(enumerable.begin(), enumerable.end(), enumerable.begin(), handler);
+        return enumerable;
+    }*/
+
     typedef std::vector<std::weak_ptr<ID>/*, ptr_comparator*/> IDSet;
 
     struct Node {
@@ -97,13 +103,13 @@ public:
         }
     }
 
-    void create(const ID& id, const ID& parent_id)
+    void create(const ID& id, ID& parent_id)
     {
         if(nodes.count(id) > 0) throw VirusAlreadyCreated();
         if(nodes.count(parent_id) == 0) throw VirusNotFound();
 
         auto node = std::make_unique<Node>(id);
-        node->ascendants.push_back(std::make_unique<ID>(parent_id));
+        node->ascendants.push_back(std::weak_ptr<ID>(nodes[parent_id]->id_ptr));
         nodes.insert(std::make_pair(id, std::move(node)));
     }
 
@@ -114,8 +120,8 @@ public:
             if(nodes.count(parent_id) == 0) throw VirusNotFound();
 
         auto node = std::make_unique<Node>(id);
-        for(auto parent_id : parent_ids)
-            node->ascendants.push_back(std::make_unique<ID>(parent_id));
+        for(auto& parent_id : parent_ids)
+            node->ascendants.push_back(std::weak_ptr<ID>(nodes[parent_id]->id_ptr));
         nodes.insert(std::make_pair(id, std::move(node)));
     }
 
