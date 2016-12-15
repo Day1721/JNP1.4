@@ -172,7 +172,7 @@ public:
 
     bool exists(const ID& id)
     {
-        return true;
+        return nodes.count(id) > 0;
     }
 };
 
