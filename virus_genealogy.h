@@ -103,7 +103,7 @@ public:
         }
     }
 
-    void create(const ID& id, ID& parent_id)
+    void create(const ID& id, const ID& parent_id)
     {
         if(nodes.count(id) > 0) throw VirusAlreadyCreated();
         if(nodes.count(parent_id) == 0) throw VirusNotFound();
@@ -130,9 +130,11 @@ public:
         try {
             Node& child = *nodes.at(child_id);
             Node& parent = *nodes.at(parent_id);
-            std::weak_ptr<ID> parent_id_ptr = parent.id_ptr;
-            if(std::find(child.ascendants.begin(), child.ascendants.end(), parent_id_ptr) != child.ascendants.end()) {
-                child.ascendants.push_back(parent_id_ptr);
+            auto it = child.ascendants.begin();
+            while (it != child.ascendants.end() && it->lock() != parent.id_ptr) it++;
+            bool found = it != child.ascendants.end();
+            if(found) {
+                child.ascendants.push_back(std::weak_ptr<ID>(parent.id_ptr));
                 try {
                     parent.descendants.push_back(std::weak_ptr<ID>(child.id_ptr));
                 }
