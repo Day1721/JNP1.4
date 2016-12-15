@@ -91,28 +91,52 @@ public:
     }
 
     void create(const ID& id, const ID& parent_id)
-    { /*
+    {
         if(nodes.count(id) > 0) throw VirusAlreadyCreated();
         if(nodes.count(parent_id) == 0) throw VirusNotFound();
 
         auto node = std::make_shared<Node>(id);
-        node->ascendants.push_back(std::weak_ptr<ID>(nodes[parent_id]->id_ptr));
-        nodes.insert(std::make_pair(id, std::move(node)));
-        */
+        auto parent = nodes[parent_id];
+        node->ascendants.push_back(std::weak_ptr<Node>(node));
+        parent->descendants.push_back(std::weak_ptr<Node>(parent));
+
+        try {
+            nodes.insert(std::make_pair(id, std::move(node)));
+        }
+        catch (...) {
+            parent->descendants.pop_back();
+        }
     }
 
     void create(const ID& id, const std::vector<ID>& parent_ids)
     {
-        /*
         if(nodes.count(id) > 0) throw VirusAlreadyCreated();
-        for(auto parent_id : parent_ids)
+        for(auto& parent_id : parent_ids)
             if(nodes.count(parent_id) == 0) throw VirusNotFound();
 
-        auto node = std::make_unique<Node>(id);
+        auto node = std::make_shared<Node>(id);
         for(auto& parent_id : parent_ids)
-            node->ascendants.push_back(std::weak_ptr<ID>(nodes[parent_id]->id_ptr));
-        nodes.insert(std::make_pair(id, std::move(node)));
-        */
+            node->ascendants.push_back(std::weak_ptr<Node>(nodes[parent_id]));
+
+        std::vector<std::shared_ptr<Node>> parents;
+        typename std::vector<std::shared_ptr<Node>>::iterator it;
+
+        for(auto& parent_id : parent_ids) {
+            parents.push_back(nodes[parent_id]);
+        }
+        try {
+            for(it = parents.begin(); it < parents.end(); it++) {
+                (*it)->descendants.push_back(std::weak_ptr<Node>(node));
+            }
+            nodes.insert(std::make_pair(id, std::move(node)));
+        }
+        catch (...) {
+            it--;
+            while (it >= parents.begin()) {
+                (*it)->descendants.pop_back();
+            }
+            throw;
+        }
     }
 
     void connect(const ID& child_id, const ID& parent_id)
@@ -126,16 +150,16 @@ public:
             //throw
         }
 
-        auto it = child.ascendants.begin();
-        while (it != child.ascendants.end() && it->lock() != parent)
+        auto it = child->ascendants.begin();
+        while (it != child->ascendants.end() && it->lock() != parent)
             it++;
-        if(it != child.ascendants.end()) {
-            child.ascendants.push_back(std::weak_ptr<ID>(parent));
+        if(it != child->ascendants.end()) {
+            child->ascendants.push_back(std::weak_ptr<Node>(parent));
             try {
-                parent.descendants.push_back(std::weak_ptr<ID>(child));
+                parent->descendants.push_back(std::weak_ptr<Node>(child));
             }
             catch (...) {
-                child.ascendants.pop_back();
+                child->ascendants.pop_back();
                 throw;
             }
         }
@@ -148,7 +172,7 @@ public:
 
     bool exists(const ID& id)
     {
-        //TODO
+        return true;
     }
 };
 
