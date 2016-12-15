@@ -57,12 +57,7 @@ public:
     std::vector<ID> get_children(const ID& id) const
     {
 		try {
-            Node& current = *nodes.at(id);
-            std::vector<ID> children;
-            for (auto& x : current.descendants) {
-                children.push_back(*x);
-            }
-            return children;
+            return std::vector(nodes.at(id)->descendants);
 		}
         catch (const std::out_of_range& oor) {
             //throw VirusNotFound();
@@ -73,12 +68,7 @@ public:
     std::vector<ID> get_parents(const ID& id) const
     {
 		try {
-            Node& current = *nodes.at(id);
-            std::vector<ID> parents;
-            for (auto& x : current.ascendants) {
-                parents.push_back(*x);
-            }
-            return parents;
+            return std::vector(nodes.at(id)->ascendants);
 		}
         catch (const std::out_of_range& oor) {
             //throw VirusNotFound();
