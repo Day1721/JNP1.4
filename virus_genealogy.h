@@ -5,20 +5,21 @@
 #include <map>
 #include <memory>
 #include <algorithm>
+#include <deque>
 
 class VirusNotFound : std::exception {
     public:
-        virtual const char* what() const { return "VirusNotFound"; }
+        virtual const char* what() const noexcept { return "VirusNotFound"; }
 };
 
 class VirusAlreadyCreated : std::exception {
     public:
-        virtual const char* what() const { return "VirusAlreadyCreated"; }
+        virtual const char* what() const noexcept { return "VirusAlreadyCreated"; }
 };
 
 class TriedToRemoveStemVirus : std::exception {
     public:
-        virtual const char* what() const { return "TriedToRemoveStemVirus"; }
+        virtual const char* what() const noexcept { return "TriedToRemoveStemVirus"; }
 };
 
 template<class Virus>
@@ -26,15 +27,13 @@ class VirusGenealogy {
 private:
     typedef typename Virus::id_type ID;
 
-    /* Uzywamy tutaj weak_ptr, bo weak_ptr daje 100% gwarancje no-throw dla
-     * konstruktorow i operatorow przypisania.
-     */
     struct Node;
-    typedef std::vector<std::weak_ptr<Node>> NodeVector;
+    typedef std::vector<std::shared_ptr<Node>> NodeVector;
     struct Node {
         Virus virus;
         NodeVector descendants;
         NodeVector ascendants;
+        int asc_counter;
 
         Node(const ID& id)
                 : virus(id), descendants(), ascendants() { }
@@ -44,6 +43,7 @@ private:
      * PATRZ forum
      */
     std::map<ID, std::shared_ptr<Node>> nodes;
+    typedef typename std::map<ID, std::shared_ptr<Node>>::iterator MapIter;
 
     ID _stem_id;
 
@@ -67,7 +67,7 @@ public:
             Node& current = *nodes.at(id);
             std::vector<ID> children;
             for (auto& x : current.descendants) {
-                children.push_back(x.lock()->virus.get_id());
+                children.push_back(x->virus.get_id());
             }
             return children;
         }
@@ -83,7 +83,7 @@ public:
             Node& current = *nodes.at(id);
             std::vector<ID> parents;
             for (auto& x : current.ascendants) {
-                parents.push_back(x.lock()->virus.get_id());
+                parents.push_back(x->virus.get_id());
             }
             return parents;
         }
@@ -110,8 +110,8 @@ public:
 
         auto node = std::make_shared<Node>(id);
         auto parent = nodes[parent_id];
-        node->ascendants.push_back(std::weak_ptr<Node>(parent));
-        parent->descendants.push_back(std::weak_ptr<Node>(node));
+        node->ascendants.push_back(std::shared_ptr<Node>(parent));
+        parent->descendants.push_back(std::shared_ptr<Node>(node));
 
         // Rollback w razie wyjatku
         try {
@@ -131,7 +131,7 @@ public:
 
         auto node = std::make_shared<Node>(id);
         for (auto& parent_id : parent_ids)
-            node->ascendants.push_back(std::weak_ptr<Node>(nodes[parent_id]));
+            node->ascendants.push_back(std::shared_ptr<Node>(nodes[parent_id]));
 
         /* Robimy pomocniczy wektor wskaznikow, tak, by moc bez zagladania do wyjatkogennej
          * mapy wstawiac i wyrzucac krawedzie.
@@ -146,7 +146,7 @@ public:
         /* Zrobiwszy wektor uzywamy go do rollbacku w razie wyjatku. */
         try {
             for (it = parents.begin(); it < parents.end(); it++) {
-                (*it)->descendants.push_back(std::weak_ptr<Node>(node));
+                (*it)->descendants.push_back(std::shared_ptr<Node>(node));
             }
             nodes.insert(std::make_pair(id, std::move(node)));
         }
@@ -154,6 +154,7 @@ public:
             it--;
             while (it >= parents.begin()) {
                 (*it)->descendants.pop_back();
+                it--;
             }
             throw;
         }
@@ -180,12 +181,12 @@ public:
          * znajdowania wirusow w mapie wystarczy.
          */
         auto it = child->ascendants.begin();
-        while (it != child->ascendants.end() && it->lock() != parent)
+        while (it != child->ascendants.end() && *it != parent)
             it++;
         if (it == child->ascendants.end()) {
-            child->ascendants.push_back(std::weak_ptr<Node>(parent));
+            child->ascendants.push_back(std::shared_ptr<Node>(parent));
             try {
-                parent->descendants.push_back(std::weak_ptr<Node>(child));
+                parent->descendants.push_back(std::shared_ptr<Node>(child));
             }
             catch (...) {
                 child->ascendants.pop_back();
@@ -194,52 +195,62 @@ public:
         }
     }
 
+    // Silna odpornosc
     void remove(const ID& id) {
-        using iterators = std::vector<std::vector<std::weak_ptr<Node>>::iterator>;
         if(id == _stem_id) throw TriedToRemoveStemVirus();
         if(nodes.count(id) == 0) throw VirusNotFound();
+
+        /* BFS-em wykrywamy zaleznosci, modyfikujac licznik w Node'ach */
         std::shared_ptr<Node> node = nodes[id];
-
-        NodeVector::iterator ascendants_iterator, descendants_iterator;
-        bool flag = false;
-
-        std::vector<NodeVector::const_iterator> descendants, ascendants;/*
-        for(ascendants_iterator = node->ascendants.begin(); ascendants_iterator < node->ascendants.end(); ascendants_iterator++) {
-
-
-        }*/
-
-        for (ascendants_iterator = node->ascendants.begin(); ascendants_iterator < node->ascendants.end(); ascendants_iterator++) {
-            (*ascendants_iterator)->descendants.erase((*ascendants_iterator)->descendants.find(nodes[id]));
-        }
-        flag = true;
-        for (descendants_iterator = node->descendants.begin(); descendants_iterator < node->descendants.end(); descendants_iterator++) {
-            (*descendants_iterator)->ascendants.erase((*descendants_iterator)->ascendants.find(nodes[id]));
-        }
-
+        std::deque<std::shared_ptr<Node>> bfs_deque;
+        std::vector<MapIter> to_remove;
+        bfs_deque.push_back(node);
+        to_remove.push_back(nodes.find(id));
         try {
-            for (ascendants_iterator = node->ascendants.begin(); ascendants_iterator < node->ascendants.end(); ascendants_iterator++) {
-                (*ascendants_iterator)->descendants.erase((*ascendants_iterator)->descendants.find(nodes[id]));
+            while (!bfs_deque.empty()) {
+                auto current = bfs_deque.front();
+                bfs_deque.pop_front();
+                for (auto& desc : current->descendants) {
+                    desc->asc_counter--;
+                    if (desc->asc_counter == 0) {
+                        to_remove.push_back(nodes.find(desc->virus.get_id()));
+                        bfs_deque.push_back(desc);
+                    }
+                }
             }
-            flag = true;
-            for (descendants_iterator = node->descendants.begin(); descendants_iterator < node->descendants.end(); descendants_iterator++) {
-                (*descendants_iterator)->ascendants.erase((*descendants_iterator)->ascendants.find(nodes[id]));
-            }
-            //TODO recursive remove of descendants
-            nodes.erase(id);
         }
         catch (...) {
-            if(flag) {
-                //TODO
+            /* Przywracamy tylko licznik */
+            for (auto& pair : nodes) {
+                auto& current = pair.second;
+                current->asc_counter = current->ascendants.size();
             }
-            //TODO
+            throw;
         }
-    }
 
-    void propagate_removal(Node* n) {
-        for (auto& n : n->descendants) {
-
+        for (auto& asc : node->ascendants) {
+           for (auto desc_it = asc->descendants.begin(); desc_it != asc->descendants.end(); desc_it++) {
+               if (*desc_it == node) {
+                   asc->descendants.erase(desc_it);
+                   break;
+               }
+           }
         }
+
+        for (MapIter& it : to_remove) {
+           auto& current = it->second;
+           for (auto& desc : current->descendants) {
+               for (auto asc_it = desc->ascendants.begin(); asc_it != desc->ascendants.end(); asc_it++) {
+                   if (*asc_it == current) {
+                       desc->ascendants.erase(asc_it);
+                       break;
+                   }
+               }
+            }
+        }
+
+        for (MapIter& it : to_remove)
+            nodes.erase(it);
     }
 
     // Silna odpornosc
@@ -248,14 +259,6 @@ public:
         return nodes.count(id) > 0;
     }
 
-private:
-    NodeVector::const_iterator find(const typename std::vector<std::weak_ptr<Node>> vector, std::weak_ptr<Node> ptr) {
-        for(auto iterator = vector.begin(); iterator < vector.end(); iterator++) {
-            if(ptr->id == iterator->virus.get_id())
-                return iterator;
-        }
-        return vector.end();
-    }
 };
 
 #endif //VIRUS_GENEALOGY_H
